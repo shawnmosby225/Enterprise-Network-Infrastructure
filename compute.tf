@@ -49,12 +49,22 @@ resource "aws_security_group" "app_sg" {
 # 3. The Isolated Linux Server Instance
 resource "aws_instance" "app_server" {
   ami           = data.aws_ami.ubuntu.id
-  instance_type = "t3.micro" # Keeps it free-tier or very low cost
+  instance_type = "t3.micro"
 
-  # Drop it directly into our private network block
   subnet_id                   = aws_subnet.private_1.id
   vpc_security_group_ids      = [aws_security_group.app_sg.id]
   associate_public_ip_address = false
+
+  root_block_device { # to enforce encryption on the root os disk
+    encrypted = true
+    volume_type = "gp3"
+  }
+
+  metadata_options {
+    http_endpoint = "enabled"
+    http_tokens = "required"
+    instance_metadata_tags = "enabled"
+  }
 
   tags = {
     Name        = "production-app-linux-01"
