@@ -8,9 +8,8 @@ data "aws_ami" "ubuntu" {
     name   = "virtualization-type"
     values = ["hvm"]
   }
-  owners = ["099720109477"] # Canonical (Official Ubuntu Owner ID)
+  owners = ["099720109477"]
 }
-
 
 resource "aws_security_group" "app_sg" {
   name        = "application-security-group"
@@ -22,7 +21,7 @@ resource "aws_security_group" "app_sg" {
     from_port   = 80
     to_port     = 80
     protocol    = "tcp"
-    cidr_blocks = [var.vpc_cidr] # Restricts access to 192.168.0.0/16
+    cidr_blocks = [var.vpc_cidr]
   }
 
   ingress {
@@ -33,11 +32,20 @@ resource "aws_security_group" "app_sg" {
     cidr_blocks = [var.vpc_cidr]
   }
 
-  # Outbound rules: Allow the server to talk out via the NAT Gateway for OS patches
+  # HARDENED EGRESS: Instead of open "-1", restrict to necessary web traffic ports only
   egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
+    description = "Allow outbound web traffic for OS package updates"
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    description = "Allow outbound secure web traffic for package updates"
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
 
@@ -46,7 +54,6 @@ resource "aws_security_group" "app_sg" {
   }
 }
 
-# 3. The Isolated Linux Server Instance
 resource "aws_instance" "app_server" {
   ami           = data.aws_ami.ubuntu.id
   instance_type = "t3.micro"
@@ -55,14 +62,17 @@ resource "aws_instance" "app_server" {
   vpc_security_group_ids      = [aws_security_group.app_sg.id]
   associate_public_ip_address = false
 
-  root_block_device { # to enforce encryption on the root os disk
-    encrypted = true
+  # FIX: Enable termination protection to block accidental deletion
+  disable_api_termination = true
+
+  root_block_device {
+    encrypted   = true
     volume_type = "gp3"
   }
 
   metadata_options {
-    http_endpoint = "enabled"
-    http_tokens = "required"
+    http_endpoint          = "enabled"
+    http_tokens            = "required"
     instance_metadata_tags = "enabled"
   }
 
