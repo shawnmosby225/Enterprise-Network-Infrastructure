@@ -73,18 +73,18 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: "us-east-1"
 
-      # CONDITION A: If push or standard dispatch run, execute a clean Plan
-        if: ${{ github.event.inputs.action != 'destroy' }}
+      # CONDITION A: Run Plan ONLY if the action input is 'plan' OR if it was triggered by a standard git push
       - name: Terraform Plan Dry-Run
+        if: ${{ github.event.inputs.action == 'plan' || github.event.inputs.action == '' }}
         run: terraform plan
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: "us-east-1"
 
-      # CONDITION B: If you explicitly drop down and select 'destroy', it will wipe the setup
-        if: ${{ github.event.inputs.action == 'destroy' }}
+      # CONDITION B: Run Destroy ONLY if the action input is explicitly set to 'destroy'
       - name: Terraform Automated Destroy
+        if: ${{ github.event.inputs.action == 'destroy' }}
         run: terraform destroy -auto-approve
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
