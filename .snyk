@@ -1,0 +1,7 @@
+# Snyk Policy File, handles authorized exceptions for IaC scanning
+version: v1.25.0
+ignore:
+    SNYK-CC-TF-73:
+     - '*':
+         reason: 'Outbound traffic to 0.0.0.0/0 on ports 80/443 is required to allow the private app instance to pull Linux OS security updates via the NAT Gateway.'
+         expires: '2027-01-01T00:00:00.000Z'
